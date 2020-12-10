@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    
+    <!-- 注意此处的导入顺序必须如下所示，否则报错。具体原因尚未知 -->
+    <script src="./d3/d3.min.js"></script>
+    <script src="https://d3js.org/d3-drag.v2.min.js"></script>
+    <script src="./d3/d3-selection.min.js"></script>
+    <script src="./d3/d3-transition.min.js"></script>
+
+    <title>graphics homework</title>
+    <style type="text/css">
+    .dB{
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        border: 3px solid #73AD21;
+    }
+    .cP{
+        position: absolute;
+        top: 0px;
+        left: 700px;
+        z-index: 1;
+        border: 3px solid #73AD21; 
+    }
+    input{
+        width:50px;
+        height:20px;
+    }
+    label{
+        width:50px;
+        height:20px;
+        font-size:15px;
+    }
+    </style>
+</head>
+<body>
+    <div class="dB" style="width:700px; height:550px; background:#ddd;" id="DrawingBoard"></div>    
+    <script>
+        //绘制静态组件
+        var width=620,height=500,
+            margin={left:55,top:20,right:20,buttom:20};
+        var svg=d3.select('#DrawingBoard')
+            .append('svg')
+            .attr('width',width)
+            .attr('height',height)
+            .attr("transform","translate("+margin.left+","+margin.top+")");
+
+        var step=20;
+        g_height=height-step,//600px
+        g_width=width-step;//480px 根据下面设置的坐标轴值可知间隔为20px
+
+        var g=d3.select('svg')
+        .append('g');
+        
+        var Xmaximum=15,Ymaximum=12;
+        //设置数据范围同svg比例增大或缩小
+        var scale_x=d3.scaleLinear()
+                    .domain([-1*Xmaximum,Xmaximum])//输入范围
+                    .range([0,g_width]);//输出范围
+                    
+        var scale_y=d3.scaleLinear()
+                    .domain([-1*Ymaximum,Ymaximum])
+                    .range([g_height,0]);
+        //添加坐标系
+        var x_axis=d3.axisBottom().scale(scale_x).ticks(2*Xmaximum).tickPadding(5).tickSize(480) ,
+            y_axis=d3.axisRight().scale(scale_y).ticks(2*Ymaximum).tickPadding(5).tickSize(600) ;
+        
+        g.append('g')
+        .call(x_axis);
+        g.append('g')
+        .call(y_axis);
+
+        //标注坐标轴
+        g.append("line")
+        .attr("x1",scale_x(0))
+        .attr("y1",scale_y(12))
+        .attr("x2",scale_x(0))
+        .attr("y2",scale_y(-12))
+        .attr("stroke","red")
+        .attr("stroke-width","2px");
+        g.append("line")
+        .attr("x1",scale_x(-15))
+        .attr("y1",scale_y(0))
+        .attr("x2",scale_x(15))
+        .attr("y2",scale_y(0))
+        .attr("stroke","red")
+        .attr("stroke-width","2px");
+        //画板，所有绘制的图元在上面显示
+        var board=d3.select('svg')
+            .append('g');
+        //转轴
+        
+        const cursor = svg.append("g")
+                    .attr("cursor", "grab");
+        var shaft=svg.append("circle")
+                .attr("cx",scale_x(0))
+                .attr("cy",scale_y(0))   
+                .attr("r",0)
+                .style("fill","orange")
+                .call(d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended));
+
+        function dragstarted() {
+            d3.select(this).raise();
+            cursor.attr("cursor", "grabbing");
+        }
+        function dragged(event) {
+            d3.select(this).attr("cx", event.x).attr("cy",event.y);
+        }
+        function dragended() {
+            cursor.attr("cursor", "grab");
+        }
+        
+    </script>
+
+    <script>
+        var states={"drawing":0,"translation":1};
+        var model=states["drawing"];
+
+        //定义可动态变化的二维数组
+        var points=new Array();
+        points[0]=new Array();
+        points[1]=new Array();
+        points[2]=new Array();
+
+        var points_index=0;
+
+        //存储起点坐标
+        var s_x=-99,x_y=-99;
+        svg.on("mousedown",function(e){
+            if(model==states["drawing"])
+            {
+                var p=d3.pointer(e);
+                var p_x=Math.round(p[0]/20)-Xmaximum;
+                var p_y=-1*(Math.round(p[1]/20)-Ymaximum);
+                console.log(p_x+","+p_y);
+
+                putpixel(p_x,p_y,"black",false,5);
+                if((s_x!=p_x)||(s_y!=p_y))
+                {
+                    points[0][points_index]=p_x;
+                    points[1][points_index]=p_y;
+                    points[2][points_index]=1;
+                    if(points_index==0){
+                        s_x=p_x;
+                        s_y=p_y; 
+                    }else{
+                        drawLine(points[0][points_index-1],points[1][points_index-1],p_x,p_y,"black");
+                    }
+                    points_index++;
+                    console.log(points);
+                }else{
+                    //到达结束点
+                    drawLine(points[0][points_index-1],points[1][points_index-1],p_x,p_y,"black");
+                    model=states["translation"];
+                    shaft.attr("r",10);
+                }
+            }
+            
+        });
+
+    
+        function tr_reset(){
+            model=states["drawing"];
+            points[0]=[];
+            points[1]=[];
+            points[2]=[];
+            s_x=-99,x_y=-99;
+            points_index=0;
+            shaft.attr("r",0);
+            board.html('');
+
+        }
+    </script>
+
+    
+    <script>//键盘交互
+        /*
+            Esc:27
+            左：37 上：38 右：39 下：40
+            R: 82(旋转) S: (停止旋转)
+            +:187 放大  -:189 缩小
+            X: 88 X轴对称变换 Y: 89 X轴对称变换
+        */
+        // var f_stop=0;
+
+        var interval;//循环计时器
+        // /*
+        function keyUp(e) {   
+            var currKey=0,e=e||event;   
+            currKey=e.keyCode||e.which||e.charCode;  
+            var altKey = e.altKey; 
+            var keyName = String.fromCharCode(currKey);  
+            e.preventDefault(); 
+            // alert("按键码: " + currKey + " 字符: " + keyName);   
+            if(currKey==27)
+            {
+                tr_reset();
+            }
+
+            if(model==states["translation"])
+            if(currKey==82){
+                interval = window.setInterval("points=rotate(points)",10);
+            }else if(currKey==83){
+                window.clearInterval(interval);
+            }else if(currKey==187){
+                points=changeScale(points,1.5,1.5);
+            }else if(currKey==189){
+                points=changeScale(points,0.5,0.5);
+            }
+            //组合键的优先级高于单键，所以应该在单键前面
+            else if(altKey&&currKey==37){
+                points=miscutChange(points,-1,0);
+            }else if(altKey&&currKey==38){
+                points=miscutChange(points,0,1);
+            }else if(altKey&&currKey==39){
+                points=miscutChange(points,1,0);
+            }else if(altKey&&currKey==40){
+                points=miscutChange(points,0,-1);
+            }else if(currKey==37){
+                points=Move(points,-1,0);
+            }else if(currKey==38){
+                points=Move(points,0,1);
+            }else if(currKey==39){
+                points=Move(points,1,0);
+            }else if(currKey==40){
+                points=Move(points,0,-1);
+            }else if(currKey==88){
+                points=reflection(points,true);
+            }else if(currKey==89){
+                points=reflection(points,false);
+            }
+
+        }   
+        document.onkeydown = keyUp
+        // */
+        // document.onkeydown = function(e) {
+        //     var keyCode = e.keyCode || e.which || e.charCode;
+        //     var altKey = e.altKey ;
+        //     if(altKey&&keyCode==37) {
+        //         alert("组合键成功")
+        //     }
+        //     e.preventDefault();
+        //     return false;
+        // }
+    </script>
+
+    <script>
+        //矩阵变化
+        function multiply(a, b) {
+            // 相乘约束
+            if (a[0].length !== b.length) {
+                throw new Error();
+            }
+            var m = a.length;
+            var p = a[0].length;
+            var n = b[0].length;
+            // 初始化 m*n 全 0 二维数组
+            var c = new Array(m).fill(0).map(arr => new Array(n).fill(0));
+            for (var i = 0; i < m; i++) {
+                for (var j = 0; j < n; j++) {
+                    for (var k = 0; k < p; k++) {
+                        c[i][j] += a[i][k] * b[k][j]*1.0;
+                    }
+                }
+            }
+            return c;
+        }
+        function rotate(P)
+        {
+            var dt=1;
+            var tx=Math.round(shaft.attr("cx")/20)-Xmaximum
+            var ty=-1*(Math.round(shaft.attr("cy")/20)-Ymaximum);
+            var t=Math.PI*2/360*dt;
+            var R=[[Math.cos(t),-1*Math.sin(t),-1*tx*Math.cos(t)+ty*Math.sin(t)+tx],
+                   [Math.sin(t),Math.cos(t),-1*tx*Math.sin(t)-ty*Math.cos(t)+ty],
+                   [0,0,1]];
+            P=multiply(R,P);
+            DrawPolygon(P);
+            return P;
+        }
+
+        function changeScale(P,sx,sy)
+        {
+            var S=[[sx,0,0],[0,sy,0],[0,0,1]];
+            P=multiply(S,P);
+            DrawPolygon(P);
+            return P;
+        }
+
+        function Move(P,tx,ty)
+        {
+            var T=[[1,0,tx],[0,1,ty],[0,0,1]];
+            P=multiply(T,P);
+            DrawPolygon(P);
+            return P;
+        }
+
+        function reflection(P,flag)
+        {
+            var RF_X=[[-1,0,0],[0,1,0],[0,0,1]];
+            var RF_Y=[[1,0,0],[0,-1,0],[0,0,1]];
+            if(flag){
+                P=multiply(RF_X,P);
+            }else{
+                P=multiply(RF_Y,P);
+            }
+            DrawPolygon(P);
+            return P;
+        }
+
+        function miscutChange(P,dx,dy)
+        {
+            var MC=[[1,dx,0],[dy,1,0],[0,0,1]];
+            P=multiply(MC,P);
+            DrawPolygon(P);
+            return P;
+        }
+
+        function DrawPolygon(P)
+        {
+            board.html('');
+            var m = P[0].length;
+            for(var i=0;i<m;i++)
+            {
+                if(i<m-1)
+                    drawLine(P[0][i],P[1][i],P[0][i+1],P[1][i+1],"black");
+                else
+                    drawLine(P[0][i],P[1][i],P[0][0],P[1][0],"black");
+            }
+        }
+
+
+        function Delay(time){
+            var startTime =new Date().getTime()+parseInt(time,10);
+            console.log(startTime);
+            while(new Date().getTime()<startTime){};
+        }
+    </script>
+    
+</body>
+    <script>
+        function drawLine(x1,y1,x2,y2,color="blue"){
+            board.append("line")
+            .attr("x1",scale_x(x1))
+            .attr("y1",scale_y(y1))
+            .attr("x2",scale_x(x2))
+            .attr("y2",scale_y(y2))
+            .attr("stroke",color)
+            .attr("z-index",99)
+            .attr("stroke-width","4px");
+        }
+        var array={};
+        var PointNumber=0;
+        function putpixel(x,y,color="blue",link=true,radiux=10)
+        {
+            array[x+","+y]=1;
+            if(link)
+                PointNumber++;
+            var circle=board.append("circle")
+                    .attr("cx",scale_x(x))
+                    .attr("cy",scale_y(y))   
+                    .attr("r",0)
+                    .transition()
+                    .attr("r",radiux)
+                    .style("fill",color)
+                    .duration(500)
+                    .delay(PointNumber*250);
+        }
+        
+    </script>
+</html>

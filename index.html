@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <!-- 注意此处的导入顺序必须如下所示，否则报错。具体原因尚未知 -->
+    <script src="./d3/d3.min.js"></script>
+    <script src="https://d3js.org/d3-drag.v2.min.js"></script>
+    <script src="./d3/d3-selection.min.js"></script>
+    <script src="./d3/d3-transition.min.js"></script>
+    <script src="./d3/d3-polygon.min.js"></script>
+
+    <title>graphics homework</title>
+    <style type="text/css">
+    .dB{
+        position: absolute;
+        top: 0px;
+        left: 0px;
+        border: 3px solid #73AD21;
+    }
+    .cP{
+        position: absolute;
+        top: 0px;
+        left: 700px;
+        z-index: 1;
+        border: 3px solid #73AD21; 
+    }
+    input{
+        width:50px;
+        height:20px;
+    }
+    label{
+        width:50px;
+        height:20px;
+        font-size:15px;
+    }
+    </style>
+</head>
+<body>
+    <div class="dB" style="width:700px; height:550px; background:#ddd;" id="DrawingBoard"></div>    
+    <div class="cP" style="text-align:center;width:200px; height:550px; background:beige;"id="ControlPanel">
+        <br><br>
+        <select id="options" onchange="selectChange()" style="text-align:center;text-align-last:center;padding-left:6px;width:140px;height:30px;color:#73AD21;">
+            <option value="1">DAA直线算法</option>
+            <option value="2">Breseham直线算法</option>
+            <option value="3">中点圆生成算法</option>
+            <option value="4">中点椭圆算法</option>
+            <option value="5">多边形填充算法</option>
+            <option value="6">多边形裁剪</option>
+        </select>
+        <br><br>
+        <input type="button" id="run" onclick="board_reset()" value="重置" style="width:100px;height:30px;color:#73AD21;">
+        <br><br><input type="hidden" id="draw_polygon" onclick="choose_polygon()" value="绘制多边形" style="width:100px;height:30px;color:#73AD21;">
+        <input type="hidden" id="draw_window" onclick="choose_window()" value="绘制裁剪窗口" style="width:100px;height:30px;color:#73AD21;">
+        <br><br><input type="hidden" id="cut" onclick="cut()" value="裁剪" style="width:100px;height:30px;color:#73AD21;">
+        <div id="layout" style="text-align: center; ">
+        </div>
+    </div>
+</body>
+    <!-- else js -->
+    <script src="./js/static.js"></script>
+    <script src="./js/algorithm.js"></script>
+    <script src="./js/draw.js"></script>
+    <script src="./js/event.js"></script>
+    <script>
+        // var p0=[0,0];
+        // var p1=[2,2];
+        // var p2=[0,0];
+        // var p3=[2,3];
+        // var p=find_intersection( p0, p1, p2, p3 );
+        // console.log("p="+p);
+
+        // var arr = [[15,0],[8,6],[25,6],[6,3]];
+        // arr.sort(function(x, y){
+        //     return y[0]-x[0];
+        // });
+        // console.log(arr);//[15, 25, 3, 8]
+        // var polygon=[[0,0],[0,2],[2,2],[2,0]];
+        // var point=[2,2];
+        // var f=d3.polygonContains(polygon, point);
+        // console.log(f);
+    </script>
+</html>
